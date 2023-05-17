@@ -1,0 +1,30 @@
+{
+  "data_path": "./",
+  "ddp": false,
+  "jz": false,
+  "numGPU": 0,
+  "WORLD_SIZE": 1,
+  "anomaly_detection": false,
+  "empty_cache_every_n_batch": 10,
+  "scenes": [
+    "neuschwanstein",
+    "bridge",
+    "eiffel",
+    "alhambra",
+    "dunnottar",
+    "pisa",
+    "bannerman",
+    "redeemer",
+    "pantheon",
+    "fushimi",
+    "liberty",
+    "colosseum"
+  ],
+  "scene_scale_factor": 10.0,
+  "zfar": 750.0,
+  "image_height": 256,
+  "image_width": 456,
+  "ambient_light_intensity": 0.85,
+  "gathering_factor": 0.05,
+  "sensor_range": 70.0
+}
