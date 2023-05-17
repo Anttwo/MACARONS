@@ -14,6 +14,7 @@
 <img src="./media/reconstructions/liberty_1_color.png" alt="liberty_reco.png" width="400"/> <br>
 <img src="./media/trajectories/pantheon_2_macarons.png" alt="pantheon_traj.png" width="400"/>
 <img src="./media/reconstructions/pantheon_2_color.png" alt="pantheon_reco.png" width="400"/> <br>
+
 </div>
 
 ## Description
@@ -24,6 +25,16 @@ Official PyTorch implementation of
 Also includes an updated and improved implementation of our previous work 
 [**SCONE: Surface Coverage Optimization in Unknown Environments by Volumetric Integration**](https://arxiv.org/abs/2208.10449) 
 (NeurIPS 2022, Spotlight), on which this work is built.
+
+We introduce a method that **simultaneously learns** to **explore new large environments** and to **reconstruct them in 3D** from **color images** 
+in a **self-supervised fashion**. This is closely related to the **Next Best View problem (NBV)**, where one has to identify where to move 
+the camera next to improve the coverage of an unknown scene.
+
+<div align="center">
+
+<a href="https://www.youtube.com/watch?v=NlUNFJYuBGs"><img src="./media/thumbnail.PNG" alt="Macarons illustration"></a>
+ 
+</div>
 
 This repository contains:
 
@@ -56,9 +67,9 @@ This repository contains:
 </details>
 
 <details>
-<summary><b>Major code updates :clipboard:</b></summary>
+<summary><b>Major code updates</b></summary>
 
-- ??/23: first code release
+- 05/23: first code release
 
 </details>
 
@@ -93,6 +104,8 @@ Then, select the ShapeNet object categories on which you want to train and test 
 
 In our experiments, we selected the following categories from the downloaded `ShapeNetCore.v1` dataset folder:
 
+<div align="center">
+ 
 | Label      | Corresponding Directory | Used for...                |
 | :--------: | :---------------------: | :------------------------: |
 | Airplane   | 02691156                | Training, Validation, Test |
@@ -111,6 +124,8 @@ In our experiments, we selected the following categories from the downloaded `Sh
 | Motorbike  | 03790512                | Test only                  |
 | Skateboard | 04225987                | Test only                  |
 | Pistol     | 03948459                | Test only                  |
+
+</div>
 
 You just have to move the directories `02691156`, `02933112`, `02958343`, `03001627`, `03636649`, 
 `04256520`, `04379243`, `04530566` to the path `./data/ShapeNetCore.v1/train_categories/`. <br>
@@ -155,16 +170,21 @@ you should extract from it the following files in order to facilitate 3D data pr
 
 To this end, you can use [Blender](https://www.blender.org/) and follow the steps below. <br>
 Let's say we want to use MACARONS to explore and reconstruct the Statue of Liberty.
-1. First, download the `.zip` containing the mesh of the [Statue of Liberty]() 
+1. First, download the `.zip` containing the mesh of the 
+[Statue of Liberty](https://sketchfab.com/3d-models/statue-of-liberty-new-york-ny-usa-8401e1c10480476e8d7e3085d1aec923) 
 created by [Brian Trepanier](https://sketchfab.com/CMBC) on Sketchfab. It should include a `.blend` file in `source` and 
 a texture image `a-StatueOfLiberty.jpg` in `textures`.
 2. Open the `.blend` file with Blender, and go to `File` > `Export` > `Wavefront (.obj)`, 
 as shown in the following image.<br>
-<img align="center" src="./media/blender/export_0.png" alt="blender_export_0.png" width="600"/>
+<div align="center">
+<img src="./media/blender/export_0.png" alt="blender_export_0.png" width="600"/> 
+</div>
 3. Make sure to check `OBJ Objects` and `Material Groups`, and select `Strip Path` as the Path Mode, as shown 
 in the following image. 
 Then, click on `Export OBJ` to output an `.obj` file and a `.mtl` file.<br>
-<img align="center" src="./media/blender/export_1.png" alt="blender_export_1.png" width="600"/>
+<div align="center">
+<img src="./media/blender/export_1.png" alt="blender_export_1.png" width="600"/>
+</div>
 4. Finally, move the `.obj` file, the `.mtl` file, as well as the `.jpg` texture file contained
 in the original archive downloaded from Sketchfab into the corresponding directory in `./data/scenes/`.<br>
 In this example, we just have to move all files `liberty.obj`, `liberty.mtl` and `a-StatueOfLiberty.jpg` 
@@ -209,8 +229,10 @@ by running three neural modules:
 2. **Occupancy probability** module, inspired by our previous work SCONE
 3. **Surface coverage gain** module, inspired by our previous work SCONE
 
-<img align="center" src="./media/modules.png" alt="modules.png" width="400"/>
-
+<div align="center">
+<img src="./media/modules.png" alt="modules.png" width="600"/>
+</div>
+ 
 Before training, we propose the following strategy to initialize the different neural modules and better
 stabilize training:
 
