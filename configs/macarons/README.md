@@ -28,7 +28,7 @@ We organize the hyperparameters into different categories, as presented in the c
 | `axis_to_mirror` | List of int | List of axis along which meshes can be symmetrized. The list should contain 0, 1 and/or 2. |
 | `scene_scale_factor` | float | Factor to scale the mesh of the scene during training. |
 
-# 2. General training parameters
+## 2. General training parameters
 
 | Parameter | class | Description |
 | :----- | :-----: | :----- |
@@ -72,7 +72,7 @@ We organize the hyperparameters into different categories, as presented in the c
 | `n_interpolation_steps` | int | Number of RGB images to capture along the way between the current camera pose and the next camera pose (the NBV). |
 | `n_poses_in_trajectory` | int | Number of camera poses to visit before stopping the trajectory. |
 
-# 5. Scene management
+## 5. Scene management
 
 | Parameter | class | Description |
 | :----- | :-----: | :----- |
@@ -87,7 +87,7 @@ We organize the hyperparameters into different categories, as presented in the c
 | `distance_factor_th` | float | Threshold used for penalizing the distance to the camera when predicting surface coverage gains. We provide details in the main paper. |
 | `remap_every_n_poses` | int | Number of poses to visit before recomputing a whole mapping of the scene. Useful at the end of trajectory, as it allows for saving a better mapping in the memory. |
 
-# 6. Depth module
+## 6. Depth module
 
 | Parameter | class | Description |
 | :----- | :-----: | :----- |
@@ -104,7 +104,7 @@ We organize the hyperparameters into different categories, as presented in the c
 | `regularity_loss` | bool | If True, applies an additional regularity term in the reconstruction loss. |
 | `regularity_factor` | float | Weight for the regularity term in the reconstruction loss. |
 
-# 7. Occupancy probability and Surface coverage gain modules (inspired by SCONE)
+## 7. Occupancy probability and Surface coverage gain modules (inspired by SCONE)
 
 | Parameter | class | Description |
 | :----- | :-----: | :----- |
@@ -115,7 +115,7 @@ We organize the hyperparameters into different categories, as presented in the c
 | `seq_len` | int | Number of points in the sequence processed by the self-attention unit of the surface coverage gain. |
 | `n_freeze_epochs` | int | Number of epochs during which we freeze the weights of the occupancy probability and surface coverage gain modules at the start of the training. Can be greater than 0 if we use pretrained weights.|
 
-# 8. Memory replay
+## 8. Memory replay
 
 | Parameter | class | Description |
 | :----- | :-----: | :----- |
