@@ -42,6 +42,8 @@ This repository contains:
 - Scripts to initialize and train both SCONE and MACARONS models
 - Evaluation pipelines and notebooks to reproduce and visualize results for both MACARONS and SCONE
 - Interactive demos to experiment with the models, built with [Gradio](https://gradio.app/)
+- Links to download [training data](https://drive.google.com/drive/folders/17kv7Ud882G06oRgYC84IcOb4B9X_NsN6?usp=sharing) from our Google Drive
+- Links to download [pretrained weights](https://drive.google.com/drive/folders/1wyc9_QFmcxOz4oerE8kCQ3I8LO5zioZL?usp=sharing) from our Google Drive
 
 <details>
 <summary>If you find this code useful, don't forget to <b>star the repo :star:</b> and <b>cite the papers :point_down:</b></summary>
@@ -189,7 +191,7 @@ Then, click on `Export OBJ` to output an `.obj` file and a `.mtl` file.<br>
 in the original archive downloaded from Sketchfab into the corresponding directory in `./data/scenes/`.<br>
 In this example, we just have to move all files `liberty.obj`, `liberty.mtl` and `a-StatueOfLiberty.jpg` 
 to the directory `./data/scenes/liberty`. <br>
-Please note that the `.obj` and `.mtl` files should have the same name apart from the extension.
+Please note that the `.obj` and `.mtl` files should have the same name apart from the extension.<br>
 
 You will notice that, for each scene, the corresponding subdirectory in `./data/scenes/` also contains 
 a file named `settings.json`. <br>
@@ -295,7 +297,7 @@ and move it to `./weights/scone/occupancy/`.
 ### 3. Surface coverage gain module
 
 After pretraining an occupancy probability module, 
-you can initialize a surface coverage gainneural module by running the following command in the main directory:
+you can initialize a surface coverage gain neural module by running the following command in the main directory:
 
 ```
 python initialize_cov.py
