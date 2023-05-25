@@ -86,6 +86,22 @@ conda env create -f environment.yml
 conda activate macarons
 ```
 
+Depending on the config of your machine and cuda drivers, you may have problems creating a working environment. <br>
+If so, you can install manually the following packages with conda and versions matching your config:
+
+1. Install numpy
+2. Install matplotlib
+3. Install pytorch
+4. Install pytorch3d
+5. Install gradio
+
+To use jupyter-lab and our rendering functions in notebooks:
+
+1. Install jupyter-lab
+2. Install plotly
+3. Install nodejs
+4. Install ipywidgets
+
 ### 2. Download Datasets and preprocess data
 
 #### a) ShapeNetCore.v1
@@ -484,3 +500,4 @@ python scone_demo.py -d 1
 
 We adapted the code from [Phil Wang](https://github.com/lucidrains/se3-transformer-pytorch/blob/main/se3_transformer_pytorch/spherical_harmonics.py) to generate spherical harmonic features. <br>
 We thank him for this very useful harmonics computation script! <br>
+
