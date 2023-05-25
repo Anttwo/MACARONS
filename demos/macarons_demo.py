@@ -152,6 +152,7 @@ def load_selected(scene_name, model_name, config_name):
         # Setup device
         # device = 'cpu'
         global_params.params.jz = False
+        global_params.params.ddp = False
         global_params.params.numGPU = numGPU
         global_params.device = setup_device(global_params.params, None)
 

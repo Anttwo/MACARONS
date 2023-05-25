@@ -170,6 +170,7 @@ def load_selected(object_folder, occupancy_model_name, coverage_model_name, conf
         global_params.params = load_params(global_params.config_path)
 
         global_params.params.jz = False
+        global_params.params.ddp = False
         global_params.params.numGPU = numGPU
         global_params.params.WORLD_SIZE = 1
         global_params.params.batch_size = 1
