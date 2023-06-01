@@ -24,6 +24,8 @@ point_size = 3
 n_frames_to_show = 4
 frame_shape = (456, 256)
 
+n_iterations_to_compute = 4
+
 test_resolution = 0.05
 
 use_perfect_depth_map = False  # should be False
@@ -259,332 +261,333 @@ def compute_next_camera_pose():
     global_params.computation_done = False
     global_params.update_board = False
 
-    if global_params.pose_i > 0 and global_params.pose_i % global_params.params.recompute_surface_every_n_loop == 0:
-        print("Recomputing surface...")
-        fill_surface_scene(global_params.surface_scene, global_params.full_pc,
-                           random_sampling_max_size=global_params.params.n_gt_surface_points,
-                           min_n_points_per_cell_fill=3,
-                           progressive_fill=global_params.params.progressive_fill,
-                           max_n_points_per_fill=global_params.params.max_points_per_progressive_fill,
-                           full_pc_colors=global_params.full_pc_colors)
+    for i_iteration_to_compute in range(n_iterations_to_compute):
+        if global_params.pose_i > 0 and global_params.pose_i % global_params.params.recompute_surface_every_n_loop == 0:
+            print("Recomputing surface...")
+            fill_surface_scene(global_params.surface_scene, global_params.full_pc,
+                               random_sampling_max_size=global_params.params.n_gt_surface_points,
+                               min_n_points_per_cell_fill=3,
+                               progressive_fill=global_params.params.progressive_fill,
+                               max_n_points_per_fill=global_params.params.max_points_per_progressive_fill,
+                               full_pc_colors=global_params.full_pc_colors)
 
-    # ----------Predict visible surface points from RGB images------------------------------------------------------
+        # ----------Predict visible surface points from RGB images------------------------------------------------------
 
-    # Load input RGB image and camera pose
-    all_images, all_zbuf, all_mask, all_R, all_T, all_zfar = load_images_for_depth_model(camera=global_params.camera,
-                                                                                         n_frames=1,
-                                                                                         n_alpha=global_params.params.n_alpha,
-                                                                                         return_gt_zbuf=True)
-    # Register GT surface points to compute true coverage for evaluation
-    for i in range(all_zbuf[-1:].shape[0]):
-        # TO CHANGE: filter points based on SSIM value!
-        part_pc = global_params.camera.compute_partial_point_cloud(depth=all_zbuf[-1:],
-                                                     mask=all_mask[-1:],
-                                                     fov_cameras=global_params.camera.get_fov_camera_from_RT(
-                                                         R_cam=all_R[-1:],
-                                                         T_cam=all_T[-1:]),
-                                                     gathering_factor=global_params.params.gathering_factor,
-                                                     fov_range=global_params.params.sensor_range)
+        # Load input RGB image and camera pose
+        all_images, all_zbuf, all_mask, all_R, all_T, all_zfar = load_images_for_depth_model(camera=global_params.camera,
+                                                                                             n_frames=1,
+                                                                                             n_alpha=global_params.params.n_alpha,
+                                                                                             return_gt_zbuf=True)
+        # Register GT surface points to compute true coverage for evaluation
+        for i in range(all_zbuf[-1:].shape[0]):
+            # TO CHANGE: filter points based on SSIM value!
+            part_pc = global_params.camera.compute_partial_point_cloud(depth=all_zbuf[-1:],
+                                                         mask=all_mask[-1:],
+                                                         fov_cameras=global_params.camera.get_fov_camera_from_RT(
+                                                             R_cam=all_R[-1:],
+                                                             T_cam=all_T[-1:]),
+                                                         gathering_factor=global_params.params.gathering_factor,
+                                                         fov_range=global_params.params.sensor_range)
 
-        # Fill surface scene
-        part_pc_features = torch.zeros(len(part_pc), 1, device=global_params.device)
-        global_params.covered_scene.fill_cells(part_pc, features=part_pc_features)  # Todo: change for better surface
-    # Compute true coverage for evaluation
-    current_coverage = global_params.gt_scene.scene_coverage(global_params.covered_scene,
-                                                             surface_epsilon=2 * test_resolution * global_params.params.scene_scale_factor)
+            # Fill surface scene
+            part_pc_features = torch.zeros(len(part_pc), 1, device=global_params.device)
+            global_params.covered_scene.fill_cells(part_pc, features=part_pc_features)  # Todo: change for better surface
+        # Compute true coverage for evaluation
+        current_coverage = global_params.gt_scene.scene_coverage(global_params.covered_scene,
+                                                                 surface_epsilon=2 * test_resolution * global_params.params.scene_scale_factor)
 
-    if current_coverage[0] == 0.:
-        global_params.coverage_evolution.append(0.)
-    else:
-        global_params.coverage_evolution.append(current_coverage[0].item())
+        if current_coverage[0] == 0.:
+            global_params.coverage_evolution.append(0.)
+        else:
+            global_params.coverage_evolution.append(current_coverage[0].item())
 
-    surface_distance = global_params.curriculum_distances[global_params.pose_i]  # todo: what if pose_i >= len(curr...)?
+        surface_distance = global_params.curriculum_distances[global_params.pose_i]  # todo: what if pose_i >= len(curr...)?
 
-    # Format input as batches to feed depth model
-    batch_dict, alpha_dict = create_batch_for_depth_model(params=global_params.params,
-                                                          all_images=all_images, all_mask=all_mask,
-                                                          all_R=all_R, all_T=all_T, all_zfar=all_zfar,
-                                                          mode='inference', device=global_params.device,
-                                                          all_zbuf=all_zbuf)
+        # Format input as batches to feed depth model
+        batch_dict, alpha_dict = create_batch_for_depth_model(params=global_params.params,
+                                                              all_images=all_images, all_mask=all_mask,
+                                                              all_R=all_R, all_T=all_T, all_zfar=all_zfar,
+                                                              mode='inference', device=global_params.device,
+                                                              all_zbuf=all_zbuf)
 
-    # Depth prediction
-    with torch.no_grad():
-        depth, mask, error_mask, pose, gt_pose = apply_depth_model(params=global_params.params,
-                                                                   macarons=global_params.model.depth,
-                                                                   batch_dict=batch_dict,
-                                                                   alpha_dict=alpha_dict,
-                                                                   device=global_params.device,
-                                                                   use_perfect_depth=global_params.params.use_perfect_depth)
-
-    if use_perfect_depth_map:
-        depth = all_zbuf[2:3]
-        error_mask = mask
-
-    # We fill the surface scene with the partial point cloud
-    for i in range(depth.shape[0]):
-        # TO CHANGE: filter points based on SSIM value!
-        part_pc, part_pc_features = global_params.camera.compute_partial_point_cloud(depth=depth[i:i + 1],
-                                                     images=batch_dict["images"][i:i+1],
-                                                     mask=(mask * error_mask)[i:i + 1],
-                                                     fov_cameras=global_params.camera.get_fov_camera_from_RT(
-                                                         R_cam=batch_dict['R'][i:i + 1],
-                                                         T_cam=batch_dict['T'][i:i + 1]),
-                                                     gathering_factor=global_params.params.gathering_factor,
-                                                     fov_range=global_params.params.sensor_range)
-
-        # Fill surface scene
-        # part_pc_features = torch.zeros(len(part_pc), 1, device=global_params.device)
-        global_params.surface_scene.fill_cells(part_pc, features=part_pc_features)
-
-        global_params.full_pc = torch.vstack((global_params.full_pc, part_pc))
-        global_params.full_pc_colors = torch.vstack((global_params.full_pc_colors, part_pc_features))
-
-    # ----------Update Proxy Points data with current FoV-----------------------------------------------------------
-
-    # Get Proxy Points in current FoV
-    fov_proxy_points, fov_proxy_mask = global_params.camera.get_points_in_fov(global_params.proxy_scene.proxy_points,
-                                                                              return_mask=True,
-                                                                              fov_camera=None,
-                                                                              fov_range=global_params.params.sensor_range)
-    fov_proxy_indices = global_params.proxy_scene.get_proxy_indices_from_mask(fov_proxy_mask)
-    global_params.proxy_scene.fill_cells(fov_proxy_points, features=fov_proxy_indices.view(-1, 1))
-
-    # Computing signed distance of proxy points in fov
-    sgn_dists = global_params.camera.get_signed_distance_to_depth_maps(pts=fov_proxy_points,
-                                                                       depth_maps=depth,
-                                                                       mask=mask, fov_camera=None)
-
-    # Updating view_state vectors
-    global_params.proxy_scene.update_proxy_view_states(global_params.camera, fov_proxy_mask,
-                                                       signed_distances=sgn_dists,
-                                                       distance_to_surface=None, X_cam=None)  # distance_to_surface TO CHANGE!
-
-    # Update the supervision occupancy for proxy points using the signed distance
-    global_params.proxy_scene.update_proxy_supervision_occ(fov_proxy_mask, sgn_dists,
-                                                           tol=global_params.params.carving_tolerance)
-
-    # Update the out-of-field status for proxy points inside camera field of view
-    global_params.proxy_scene.update_proxy_out_of_field(fov_proxy_mask)
-
-    # Update visibility history of surface points
-    # global_params.surface_scene.set_all_features_to_value(value=1.)
-
-    # ----------Predict Occupancy Probability Field-----------------------------------------------------------------
-
-    with torch.no_grad():
-        X_world, view_harmonics, occ_probs = compute_scene_occupancy_probability_field(global_params.params,
-                                                                                       global_params.model.scone,
-                                                                                       global_params.camera,
-                                                                                       global_params.surface_scene,
-                                                                                       global_params.proxy_scene,
-                                                                                       global_params.device)
-
-    global_params.occupancy_X = X_world + 0.
-    global_params.occupancy_sigma = occ_probs + 0.
-
-    # ----------Predict Coverage Gain of neighbor camera poses----------------------------------------------------------
-
-    # Compute valid neighbor poses
-    neighbor_indices = global_params.camera.get_neighboring_poses()
-    valid_neighbors = global_params.camera.get_valid_neighbors(neighbor_indices=neighbor_indices,
-                                                               mesh=global_params.mesh)
-
-    max_coverage_gain = -1.
-    next_idx = valid_neighbors[0]
-
-    # For each valid neighbor...
-    for neighbor_i in range(len(valid_neighbors)):
-        neighbor_idx = valid_neighbors[neighbor_i]
-        neighbor_pose, _ = global_params.camera.get_pose_from_idx(neighbor_idx)
-        X_neighbor, V_neighbor, fov_neighbor = global_params.camera.get_camera_parameters_from_pose(neighbor_pose)
-
-        # We check, if needed, if camera collides
-        drop_neighbor = False
-        if compute_collision:
-            drop_neighbor = global_params.proxy_scene.camera_collides(global_params.params, global_params.camera, X_neighbor)
-
-        if not drop_neighbor:
-            # ...We predict its coverage gain...
-            with torch.no_grad():
-                _, _, visibility_gains, coverage_gain = predict_coverage_gain_for_single_camera(
-                    params=global_params.params, macarons=global_params.model.scone,
-                    proxy_scene=global_params.proxy_scene, surface_scene=global_params.surface_scene,
-                    X_world=X_world, proxy_view_harmonics=view_harmonics, occ_probs=occ_probs,
-                    camera=global_params.camera, X_cam_world=X_neighbor, fov_camera=fov_neighbor)
-
-            # ...And save it with the neighbor index if the estimated coverage is better
-            if coverage_gain.shape[0] > 0 and coverage_gain > max_coverage_gain:
-                max_coverage_gain = coverage_gain
-                next_idx = neighbor_idx
-
-    X_cam_t = 0. + global_params.camera.X_cam
-    V_cam_t = 0. + global_params.camera.V_cam
-    fov_camera_t = global_params.camera.get_fov_camera_from_XV(X_cam=X_cam_t, V_cam=V_cam_t)
-
-    # ==================================================================================================================
-    # Move to the neighbor NBV and acquire supervision signal
-    # ==================================================================================================================
-
-    # Now that we have estimated the NBV among neighbors, we move toward this new camera pose and save RGB images along
-    # the way.
-
-    # ----------Move to next camera pose--------------------------------------------------------------------------------
-    # We move to the next pose and capture RGB images.
-    interpolation_step = 1
-    for i in range(global_params.camera.n_interpolation_steps):
-        global_params.camera.update_camera(next_idx, interpolation_step=interpolation_step)
-        global_params.camera.capture_image(global_params.mesh)
-        interpolation_step += 1
-
-    # ----------Depth prediction------------------------------------------------------------------------------------
-    # Load input RGB image and camera pose
-    all_images, all_zbuf, all_mask, all_R, all_T, all_zfar = load_images_for_depth_model(camera=global_params.camera,
-                                                                                         n_frames=global_params.params.n_interpolation_steps,
-                                                                                         n_alpha=global_params.params.n_alpha_for_supervision,
-                                                                                         return_gt_zbuf=True)
-    # Format input as batches to feed depth model
-    batch_dict, alpha_dict = create_batch_for_depth_model(params=global_params.params,
-                                                          all_images=all_images, all_mask=all_mask,
-                                                          all_R=all_R, all_T=all_T, all_zfar=all_zfar,
-                                                          mode='supervision', device=global_params.device, all_zbuf=all_zbuf)
-
-    # Depth prediction
-    depth, mask, error_mask = [], [], []
-    for i in range(batch_dict['images'].shape[0]):
-        batch_dict_i = {}
-        batch_dict_i['images'] = batch_dict['images'][i:i + 1]
-        batch_dict_i['mask'] = batch_dict['mask'][i:i + 1]
-        batch_dict_i['R'] = batch_dict['R'][i:i + 1]
-        batch_dict_i['T'] = batch_dict['T'][i:i + 1]
-        batch_dict_i['zfar'] = batch_dict['zfar'][i:i + 1]
-        batch_dict_i['zbuf'] = batch_dict['zbuf'][i:i + 1]
-
-        alpha_dict_i = {}
-        alpha_dict_i['images'] = alpha_dict['images'][i:i + 1]
-        alpha_dict_i['mask'] = alpha_dict['mask'][i:i + 1]
-        alpha_dict_i['R'] = alpha_dict['R'][i:i + 1]
-        alpha_dict_i['T'] = alpha_dict['T'][i:i + 1]
-        alpha_dict_i['zfar'] = alpha_dict['zfar'][i:i + 1]
-        alpha_dict_i['zbuf'] = alpha_dict['zbuf'][i:i + 1]
-
+        # Depth prediction
         with torch.no_grad():
-            depth_i, mask_i, error_mask_i, _, _ = apply_depth_model(params=global_params.params, macarons=global_params.model.depth,
-                                                                    batch_dict=batch_dict_i,
-                                                                    alpha_dict=alpha_dict_i,
-                                                                    device=global_params.device,
-                                                                    compute_loss=False,
-                                                                    use_perfect_depth=global_params.params.use_perfect_depth)
-            if use_perfect_depth_map:
-                depth_i = all_zbuf[2 + i:3 + i]
-                error_mask_i = mask_i
+            depth, mask, error_mask, pose, gt_pose = apply_depth_model(params=global_params.params,
+                                                                       macarons=global_params.model.depth,
+                                                                       batch_dict=batch_dict,
+                                                                       alpha_dict=alpha_dict,
+                                                                       device=global_params.device,
+                                                                       use_perfect_depth=global_params.params.use_perfect_depth)
 
-        depth.append(depth_i)
-        mask.append(mask_i)
-        error_mask.append(error_mask_i)
-    depth = torch.cat(depth, dim=0)
-    mask = torch.cat(mask, dim=0)
-    error_mask = torch.cat(error_mask, dim=0)
+        if use_perfect_depth_map:
+            depth = all_zbuf[2:3]
+            error_mask = mask
 
-    # Save current images and depths
-    global_params.current_frames = batch_dict['images'] + 0.
-    global_params.current_depths = depth + 0.
-    global_params.current_mask = mask
-    if depth.get_device() > -1:
-        global_params.current_frames = global_params.current_frames.cpu()
-        global_params.current_depths = global_params.current_depths.cpu()
-        global_params.current_mask = global_params.current_mask.cpu()
+        # We fill the surface scene with the partial point cloud
+        for i in range(depth.shape[0]):
+            # TO CHANGE: filter points based on SSIM value!
+            part_pc, part_pc_features = global_params.camera.compute_partial_point_cloud(depth=depth[i:i + 1],
+                                                         images=batch_dict["images"][i:i+1],
+                                                         mask=(mask * error_mask)[i:i + 1],
+                                                         fov_cameras=global_params.camera.get_fov_camera_from_RT(
+                                                             R_cam=batch_dict['R'][i:i + 1],
+                                                             T_cam=batch_dict['T'][i:i + 1]),
+                                                         gathering_factor=global_params.params.gathering_factor,
+                                                         fov_range=global_params.params.sensor_range)
 
-    # ----------Build supervision signal from the new depth maps----------------------------------------------------
-    all_part_pc = []
-    all_part_pc_features = []
-    all_fov_proxy_points = torch.zeros(0, 3, device=global_params.device)
-    general_fov_proxy_mask = torch.zeros(global_params.params.n_proxy_points, device=global_params.device).bool()
-    all_fov_proxy_mask = []
-    all_sgn_dists = []
-    all_X_cam = []
-    all_fov_camera = []
+            # Fill surface scene
+            # part_pc_features = torch.zeros(len(part_pc), 1, device=global_params.device)
+            global_params.surface_scene.fill_cells(part_pc, features=part_pc_features)
 
-    close_fov_proxy_mask = torch.zeros(global_params.params.n_proxy_points, device=global_params.device).bool()
+            global_params.full_pc = torch.vstack((global_params.full_pc, part_pc))
+            global_params.full_pc_colors = torch.vstack((global_params.full_pc_colors, part_pc_features))
 
-    for i in range(depth.shape[0]):
-        fov_frame = global_params.camera.get_fov_camera_from_RT(R_cam=batch_dict['R'][i:i + 1], T_cam=batch_dict['T'][i:i + 1])
-        all_X_cam.append(fov_frame.get_camera_center())
-        all_fov_camera.append(fov_frame)
-
-        # TO CHANGE: filter points based on SSIM value!
-        part_pc, part_pc_features = global_params.camera.compute_partial_point_cloud(depth=depth[i:i + 1],
-                                                                   images=batch_dict['images'][i:i+1],
-                                                                   mask=(mask * error_mask)[i:i + 1].bool(),
-                                                                   fov_cameras=fov_frame,
-                                                                   gathering_factor=global_params.params.gathering_factor,
-                                                                   fov_range=global_params.params.sensor_range)
-
-        # Surface points to fill surface scene
-        all_part_pc.append(part_pc)
-        all_part_pc_features.append(part_pc_features)
+        # ----------Update Proxy Points data with current FoV-----------------------------------------------------------
 
         # Get Proxy Points in current FoV
-        fov_proxy_points, fov_proxy_mask = global_params.camera.get_points_in_fov(global_params.proxy_scene.proxy_points, return_mask=True,
-                                                                    fov_camera=fov_frame, fov_range=global_params.params.sensor_range)
-        all_fov_proxy_points = torch.vstack((all_fov_proxy_points, fov_proxy_points))
-        all_fov_proxy_mask.append(fov_proxy_mask)
-        general_fov_proxy_mask = general_fov_proxy_mask + fov_proxy_mask
+        fov_proxy_points, fov_proxy_mask = global_params.camera.get_points_in_fov(global_params.proxy_scene.proxy_points,
+                                                                                  return_mask=True,
+                                                                                  fov_camera=None,
+                                                                                  fov_range=global_params.params.sensor_range)
+        fov_proxy_indices = global_params.proxy_scene.get_proxy_indices_from_mask(fov_proxy_mask)
+        global_params.proxy_scene.fill_cells(fov_proxy_points, features=fov_proxy_indices.view(-1, 1))
 
         # Computing signed distance of proxy points in fov
-        sgn_dists = global_params.camera.get_signed_distance_to_depth_maps(pts=fov_proxy_points, depth_maps=depth[i:i + 1],
-                                                             mask=mask[i:i + 1].bool(), fov_camera=fov_frame
-                                                             ).view(-1, 1)
-        all_sgn_dists.append(sgn_dists)
+        sgn_dists = global_params.camera.get_signed_distance_to_depth_maps(pts=fov_proxy_points,
+                                                                           depth_maps=depth,
+                                                                           mask=mask, fov_camera=None)
 
-        # Computing mask for proxy points close to the surface. We will use this for occupancy probability supervision.
-        close_fov_proxy_mask[fov_proxy_mask] = False + (sgn_dists.view(-1).abs() < surface_distance)
-
-    # ----------Update Scenes to finalize supervision signal and prepare next iteration---------------------------------
-
-    # 1. Surface scene
-    # Fill surface scene
-    # We give a visibility=1 to points that were visible in frame t, and 0 to others
-    complete_part_pc = torch.vstack(all_part_pc)
-    complete_part_pc_features = torch.vstack(all_part_pc_features) # torch.zeros(len(complete_part_pc), 1, device=global_params.device)
-    # complete_part_pc_features[:len(all_part_pc[0])] = 1.
-    global_params.surface_scene.fill_cells(complete_part_pc, features=complete_part_pc_features)
-
-    global_params.full_pc = torch.vstack((global_params.full_pc, complete_part_pc))
-    global_params.full_pc_colors = torch.vstack((global_params.full_pc_colors, complete_part_pc_features))
-
-    # Compute coverage gain for each new camera pose
-    # We also include, at the beginning, the previous camera pose with a coverage gain equal to 0.
-    # supervision_coverage_gains = torch.zeros(global_params.params.n_interpolation_steps, 1, device=global_params.device)
-    # for i in range(depth.shape[0]):
-    #     supervision_coverage_gains[i, 0] = global_params.surface_scene.camera_coverage_gain(all_part_pc[i],
-    #                                                                                         surface_epsilon=None)
-
-    # Update visibility history of surface points
-    # global_params.surface_scene.set_all_features_to_value(value=1.)
-
-    # 2. Proxy scene
-    # Fill proxy scene
-    general_fov_proxy_indices = global_params.proxy_scene.get_proxy_indices_from_mask(general_fov_proxy_mask)
-    global_params.proxy_scene.fill_cells(global_params.proxy_scene.proxy_points[general_fov_proxy_mask],
-                                         features=general_fov_proxy_indices.view(-1, 1))
-
-    for i in range(depth.shape[0]):
         # Updating view_state vectors
-        global_params.proxy_scene.update_proxy_view_states(global_params.camera, all_fov_proxy_mask[i],
-                                                           signed_distances=all_sgn_dists[i],
-                                                           distance_to_surface=None,
-                                                           X_cam=all_X_cam[i])  # distance_to_surface TO CHANGE!
+        global_params.proxy_scene.update_proxy_view_states(global_params.camera, fov_proxy_mask,
+                                                           signed_distances=sgn_dists,
+                                                           distance_to_surface=None, X_cam=None)  # distance_to_surface TO CHANGE!
 
         # Update the supervision occupancy for proxy points using the signed distance
-        global_params.proxy_scene.update_proxy_supervision_occ(all_fov_proxy_mask[i], all_sgn_dists[i],
+        global_params.proxy_scene.update_proxy_supervision_occ(fov_proxy_mask, sgn_dists,
                                                                tol=global_params.params.carving_tolerance)
 
-    # Update the out-of-field status for proxy points inside camera field of view
-    global_params.proxy_scene.update_proxy_out_of_field(general_fov_proxy_mask)
+        # Update the out-of-field status for proxy points inside camera field of view
+        global_params.proxy_scene.update_proxy_out_of_field(fov_proxy_mask)
 
-    global_params.pose_i += 1
+        # Update visibility history of surface points
+        # global_params.surface_scene.set_all_features_to_value(value=1.)
 
-    print("pose_i:", global_params.pose_i)
+        # ----------Predict Occupancy Probability Field-----------------------------------------------------------------
+
+        with torch.no_grad():
+            X_world, view_harmonics, occ_probs = compute_scene_occupancy_probability_field(global_params.params,
+                                                                                           global_params.model.scone,
+                                                                                           global_params.camera,
+                                                                                           global_params.surface_scene,
+                                                                                           global_params.proxy_scene,
+                                                                                           global_params.device)
+
+        global_params.occupancy_X = X_world + 0.
+        global_params.occupancy_sigma = occ_probs + 0.
+
+        # ----------Predict Coverage Gain of neighbor camera poses----------------------------------------------------------
+
+        # Compute valid neighbor poses
+        neighbor_indices = global_params.camera.get_neighboring_poses()
+        valid_neighbors = global_params.camera.get_valid_neighbors(neighbor_indices=neighbor_indices,
+                                                                   mesh=global_params.mesh)
+
+        max_coverage_gain = -1.
+        next_idx = valid_neighbors[0]
+
+        # For each valid neighbor...
+        for neighbor_i in range(len(valid_neighbors)):
+            neighbor_idx = valid_neighbors[neighbor_i]
+            neighbor_pose, _ = global_params.camera.get_pose_from_idx(neighbor_idx)
+            X_neighbor, V_neighbor, fov_neighbor = global_params.camera.get_camera_parameters_from_pose(neighbor_pose)
+
+            # We check, if needed, if camera collides
+            drop_neighbor = False
+            if compute_collision:
+                drop_neighbor = global_params.proxy_scene.camera_collides(global_params.params, global_params.camera, X_neighbor)
+
+            if not drop_neighbor:
+                # ...We predict its coverage gain...
+                with torch.no_grad():
+                    _, _, visibility_gains, coverage_gain = predict_coverage_gain_for_single_camera(
+                        params=global_params.params, macarons=global_params.model.scone,
+                        proxy_scene=global_params.proxy_scene, surface_scene=global_params.surface_scene,
+                        X_world=X_world, proxy_view_harmonics=view_harmonics, occ_probs=occ_probs,
+                        camera=global_params.camera, X_cam_world=X_neighbor, fov_camera=fov_neighbor)
+
+                # ...And save it with the neighbor index if the estimated coverage is better
+                if coverage_gain.shape[0] > 0 and coverage_gain > max_coverage_gain:
+                    max_coverage_gain = coverage_gain
+                    next_idx = neighbor_idx
+
+        X_cam_t = 0. + global_params.camera.X_cam
+        V_cam_t = 0. + global_params.camera.V_cam
+        fov_camera_t = global_params.camera.get_fov_camera_from_XV(X_cam=X_cam_t, V_cam=V_cam_t)
+
+        # ==================================================================================================================
+        # Move to the neighbor NBV and acquire supervision signal
+        # ==================================================================================================================
+
+        # Now that we have estimated the NBV among neighbors, we move toward this new camera pose and save RGB images along
+        # the way.
+
+        # ----------Move to next camera pose--------------------------------------------------------------------------------
+        # We move to the next pose and capture RGB images.
+        interpolation_step = 1
+        for i in range(global_params.camera.n_interpolation_steps):
+            global_params.camera.update_camera(next_idx, interpolation_step=interpolation_step)
+            global_params.camera.capture_image(global_params.mesh)
+            interpolation_step += 1
+
+        # ----------Depth prediction------------------------------------------------------------------------------------
+        # Load input RGB image and camera pose
+        all_images, all_zbuf, all_mask, all_R, all_T, all_zfar = load_images_for_depth_model(camera=global_params.camera,
+                                                                                             n_frames=global_params.params.n_interpolation_steps,
+                                                                                             n_alpha=global_params.params.n_alpha_for_supervision,
+                                                                                             return_gt_zbuf=True)
+        # Format input as batches to feed depth model
+        batch_dict, alpha_dict = create_batch_for_depth_model(params=global_params.params,
+                                                              all_images=all_images, all_mask=all_mask,
+                                                              all_R=all_R, all_T=all_T, all_zfar=all_zfar,
+                                                              mode='supervision', device=global_params.device, all_zbuf=all_zbuf)
+
+        # Depth prediction
+        depth, mask, error_mask = [], [], []
+        for i in range(batch_dict['images'].shape[0]):
+            batch_dict_i = {}
+            batch_dict_i['images'] = batch_dict['images'][i:i + 1]
+            batch_dict_i['mask'] = batch_dict['mask'][i:i + 1]
+            batch_dict_i['R'] = batch_dict['R'][i:i + 1]
+            batch_dict_i['T'] = batch_dict['T'][i:i + 1]
+            batch_dict_i['zfar'] = batch_dict['zfar'][i:i + 1]
+            batch_dict_i['zbuf'] = batch_dict['zbuf'][i:i + 1]
+
+            alpha_dict_i = {}
+            alpha_dict_i['images'] = alpha_dict['images'][i:i + 1]
+            alpha_dict_i['mask'] = alpha_dict['mask'][i:i + 1]
+            alpha_dict_i['R'] = alpha_dict['R'][i:i + 1]
+            alpha_dict_i['T'] = alpha_dict['T'][i:i + 1]
+            alpha_dict_i['zfar'] = alpha_dict['zfar'][i:i + 1]
+            alpha_dict_i['zbuf'] = alpha_dict['zbuf'][i:i + 1]
+
+            with torch.no_grad():
+                depth_i, mask_i, error_mask_i, _, _ = apply_depth_model(params=global_params.params, macarons=global_params.model.depth,
+                                                                        batch_dict=batch_dict_i,
+                                                                        alpha_dict=alpha_dict_i,
+                                                                        device=global_params.device,
+                                                                        compute_loss=False,
+                                                                        use_perfect_depth=global_params.params.use_perfect_depth)
+                if use_perfect_depth_map:
+                    depth_i = all_zbuf[2 + i:3 + i]
+                    error_mask_i = mask_i
+
+            depth.append(depth_i)
+            mask.append(mask_i)
+            error_mask.append(error_mask_i)
+        depth = torch.cat(depth, dim=0)
+        mask = torch.cat(mask, dim=0)
+        error_mask = torch.cat(error_mask, dim=0)
+
+        # Save current images and depths
+        global_params.current_frames = batch_dict['images'] + 0.
+        global_params.current_depths = depth + 0.
+        global_params.current_mask = mask
+        if depth.get_device() > -1:
+            global_params.current_frames = global_params.current_frames.cpu()
+            global_params.current_depths = global_params.current_depths.cpu()
+            global_params.current_mask = global_params.current_mask.cpu()
+
+        # ----------Build supervision signal from the new depth maps----------------------------------------------------
+        all_part_pc = []
+        all_part_pc_features = []
+        all_fov_proxy_points = torch.zeros(0, 3, device=global_params.device)
+        general_fov_proxy_mask = torch.zeros(global_params.params.n_proxy_points, device=global_params.device).bool()
+        all_fov_proxy_mask = []
+        all_sgn_dists = []
+        all_X_cam = []
+        all_fov_camera = []
+
+        close_fov_proxy_mask = torch.zeros(global_params.params.n_proxy_points, device=global_params.device).bool()
+
+        for i in range(depth.shape[0]):
+            fov_frame = global_params.camera.get_fov_camera_from_RT(R_cam=batch_dict['R'][i:i + 1], T_cam=batch_dict['T'][i:i + 1])
+            all_X_cam.append(fov_frame.get_camera_center())
+            all_fov_camera.append(fov_frame)
+
+            # TO CHANGE: filter points based on SSIM value!
+            part_pc, part_pc_features = global_params.camera.compute_partial_point_cloud(depth=depth[i:i + 1],
+                                                                       images=batch_dict['images'][i:i+1],
+                                                                       mask=(mask * error_mask)[i:i + 1].bool(),
+                                                                       fov_cameras=fov_frame,
+                                                                       gathering_factor=global_params.params.gathering_factor,
+                                                                       fov_range=global_params.params.sensor_range)
+
+            # Surface points to fill surface scene
+            all_part_pc.append(part_pc)
+            all_part_pc_features.append(part_pc_features)
+
+            # Get Proxy Points in current FoV
+            fov_proxy_points, fov_proxy_mask = global_params.camera.get_points_in_fov(global_params.proxy_scene.proxy_points, return_mask=True,
+                                                                        fov_camera=fov_frame, fov_range=global_params.params.sensor_range)
+            all_fov_proxy_points = torch.vstack((all_fov_proxy_points, fov_proxy_points))
+            all_fov_proxy_mask.append(fov_proxy_mask)
+            general_fov_proxy_mask = general_fov_proxy_mask + fov_proxy_mask
+
+            # Computing signed distance of proxy points in fov
+            sgn_dists = global_params.camera.get_signed_distance_to_depth_maps(pts=fov_proxy_points, depth_maps=depth[i:i + 1],
+                                                                 mask=mask[i:i + 1].bool(), fov_camera=fov_frame
+                                                                 ).view(-1, 1)
+            all_sgn_dists.append(sgn_dists)
+
+            # Computing mask for proxy points close to the surface. We will use this for occupancy probability supervision.
+            close_fov_proxy_mask[fov_proxy_mask] = False + (sgn_dists.view(-1).abs() < surface_distance)
+
+        # ----------Update Scenes to finalize supervision signal and prepare next iteration---------------------------------
+
+        # 1. Surface scene
+        # Fill surface scene
+        # We give a visibility=1 to points that were visible in frame t, and 0 to others
+        complete_part_pc = torch.vstack(all_part_pc)
+        complete_part_pc_features = torch.vstack(all_part_pc_features) # torch.zeros(len(complete_part_pc), 1, device=global_params.device)
+        # complete_part_pc_features[:len(all_part_pc[0])] = 1.
+        global_params.surface_scene.fill_cells(complete_part_pc, features=complete_part_pc_features)
+
+        global_params.full_pc = torch.vstack((global_params.full_pc, complete_part_pc))
+        global_params.full_pc_colors = torch.vstack((global_params.full_pc_colors, complete_part_pc_features))
+
+        # Compute coverage gain for each new camera pose
+        # We also include, at the beginning, the previous camera pose with a coverage gain equal to 0.
+        # supervision_coverage_gains = torch.zeros(global_params.params.n_interpolation_steps, 1, device=global_params.device)
+        # for i in range(depth.shape[0]):
+        #     supervision_coverage_gains[i, 0] = global_params.surface_scene.camera_coverage_gain(all_part_pc[i],
+        #                                                                                         surface_epsilon=None)
+
+        # Update visibility history of surface points
+        # global_params.surface_scene.set_all_features_to_value(value=1.)
+
+        # 2. Proxy scene
+        # Fill proxy scene
+        general_fov_proxy_indices = global_params.proxy_scene.get_proxy_indices_from_mask(general_fov_proxy_mask)
+        global_params.proxy_scene.fill_cells(global_params.proxy_scene.proxy_points[general_fov_proxy_mask],
+                                             features=general_fov_proxy_indices.view(-1, 1))
+
+        for i in range(depth.shape[0]):
+            # Updating view_state vectors
+            global_params.proxy_scene.update_proxy_view_states(global_params.camera, all_fov_proxy_mask[i],
+                                                               signed_distances=all_sgn_dists[i],
+                                                               distance_to_surface=None,
+                                                               X_cam=all_X_cam[i])  # distance_to_surface TO CHANGE!
+
+            # Update the supervision occupancy for proxy points using the signed distance
+            global_params.proxy_scene.update_proxy_supervision_occ(all_fov_proxy_mask[i], all_sgn_dists[i],
+                                                                   tol=global_params.params.carving_tolerance)
+
+        # Update the out-of-field status for proxy points inside camera field of view
+        global_params.proxy_scene.update_proxy_out_of_field(general_fov_proxy_mask)
+
+        global_params.pose_i += 1
+
+        print("pose_i:", global_params.pose_i)
     global_params.computation_done = True
     return update_explore_message()
 
