@@ -3,7 +3,7 @@
 # MACARONS: Mapping And Coverage Anticipation with RGB ONline Self-supervision
 
 <font size="4">
-<a href="https://github.com/Anttwo">Antoine Guédon</a>&emsp;
+<a href="https://imagine.enpc.fr/~guedona/">Antoine Guédon</a>&emsp;
 <a href="https://www.tmonnier.com/">Tom Monnier</a>&emsp;
 <a href="https://imagine.enpc.fr/~monasse/">Pascal Monasse</a>&emsp;
 <a href="https://vincentlepetit.github.io/">Vincent Lepetit</a>&emsp;
