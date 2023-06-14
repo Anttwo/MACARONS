@@ -458,7 +458,7 @@ def get_scene_gt_surface(gt_scene, verts, faces, n_surface_points, return_colors
 
     texture_face_indices = None
     if return_colors:
-        texture_face_indices = torch.arange(len(faces), device=verts.get_device())[
+        texture_face_indices = torch.arange(len(faces), device=verts.device)[
             torch.gather(input=inside_mask.view(-1, 1).expand(-1, 3), dim=0, index=faces).prod(-1).bool()]
 
     gt_surface = sample_points_on_mesh_surface(verts, inside_faces, n_surface_points,
@@ -547,7 +547,7 @@ def fill_surface_scene(surface_scene, full_pc,
     sample_pc = full_pc[sample_idx]
 
     if full_pc_colors is None:
-        sample_pc_features = torch.ones(len(sample_pc), 1, device=sample_pc.get_device())
+        sample_pc_features = torch.ones(len(sample_pc), 1, device=sample_pc.device)
     else:
         sample_pc_features = full_pc_colors[sample_idx]
 
@@ -746,13 +746,13 @@ def get_camera_RT(X_cam, V_cam):
     :return: (Tuple of Tensors) R, T matrices of cameras.
         R_cam has shape (n_cam, 3, 3) and T_cam has shape (n_cam, 3).
     """
-    rays = - get_cartesian_coords(r=torch.ones(len(V_cam), 1, device=V_cam.get_device()),
+    rays = - get_cartesian_coords(r=torch.ones(len(V_cam), 1, device=V_cam.device),
                                   elev=-1 * V_cam[:, 0].view(-1, 1),
                                   azim=180. + V_cam[:, 1].view(-1, 1),
                                   in_degrees=True)
     R_cam, T_cam = look_at_view_transform(eye=X_cam, at=X_cam + rays)
-    if V_cam.get_device() > -1:
-        R_cam, T_cam = R_cam.to(V_cam.get_device()), T_cam.to(V_cam.get_device())
+    if V_cam.device > -1:
+        R_cam, T_cam = R_cam.to(V_cam.device), T_cam.to(V_cam.device)
 
     return R_cam, T_cam
 
@@ -1207,7 +1207,7 @@ def compute_occupancy_probability(macarons, pc, X, view_harmonics, mask=None,
     n_sample, x_dim = X.shape[1], X.shape[2]
     n_harmonics = view_harmonics.shape[2]
 
-    preds = torch.zeros(n_clouds, 0, 1).to(X.get_device())
+    preds = torch.zeros(n_clouds, 0, 1).to(X.device)
 
     p = max_points_per_pass // n_clouds
     q = n_sample // p
@@ -1758,7 +1758,7 @@ def get_distance_factor(params, pts, X_cam, fov_camera, cell_resolution):
     dists = torch.linalg.norm(pts - X_cam.view(1, 3), dim=-1, keepdim=True)
     dist_mask = dists > distance_th
 
-    res = torch.ones(n_pts, 1, device=pts.get_device())
+    res = torch.ones(n_pts, 1, device=pts.device)
     # res[dist_mask] = distance_th * distance_th / torch.pow(dists[dist_mask], exponent=2)
 
     res[dist_mask] = epsilon ** 2 * (focal_length / pixel_size / dists[dist_mask]) ** 2
@@ -1771,7 +1771,7 @@ def get_distance_factor_threshold(pts, X_cam, distance_th=17.):
     dists = torch.linalg.norm(pts - X_cam.view(1, 3), dim=-1, keepdim=True)
     dist_mask = dists > distance_th
 
-    res = torch.ones(n_pts, 1, device=pts.get_device())
+    res = torch.ones(n_pts, 1, device=pts.device)
     res[dist_mask] *= distance_th ** 2 / (dists[dist_mask]) ** 2
 
     return res
@@ -2508,8 +2508,8 @@ class Cell:
         self.w = w
         self.h = h
 
-        self.x_min = center - torch.Tensor([[l / 2., w / 2., h / 2.]]).to(center.get_device())
-        self.x_max = center + torch.Tensor([[l / 2., w / 2., h / 2.]]).to(center.get_device())
+        self.x_min = center - torch.Tensor([[l / 2., w / 2., h / 2.]]).to(center.device)
+        self.x_max = center + torch.Tensor([[l / 2., w / 2., h / 2.]]).to(center.device)
 
         if resolution is None:
             if capacity is None:
@@ -2964,7 +2964,7 @@ class Scene:
             return False
 
         else:
-            device = X_cam.get_device()
+            device = X_cam.device
             ray = camera.X_cam + torch.linspace(0, 1, params.n_interpolation_steps,
                                                 device=device).view(-1, 1).expand(-1, 3) * (X_cam - camera.X_cam)
 

@@ -314,7 +314,7 @@ class SconeOcc(nn.Module):
         if self.n_scale > 0:
             local_features = torch.cat(local_transformed, dim=-1)
         else:
-            local_features = torch.zeros(n_clouds, n_sample, 0, device=pc.get_device())
+            local_features = torch.zeros(n_clouds, n_sample, 0, device=pc.device)
         local_features = local_features.view(n_clouds, n_sample, self.n_scale * self.local_feature_dim)
         if verbose:
             with torch.no_grad():

@@ -647,7 +647,7 @@ def get_optimal_sequence(optimal_sequences, mesh_path, n_views):
 
 
 def compute_gt_coverage_gain_from_precomputed_matrices(coverage, initial_cam_idx):
-    device = coverage.get_device()
+    device = coverage.device
 
     n_camera_candidates, n_points_surface = coverage.shape[0], coverage.shape[1]
 
@@ -669,7 +669,7 @@ def compute_gt_coverage_gain_from_precomputed_matrices(coverage, initial_cam_idx
 
 
 def compute_surface_coverage_from_cam_idx(coverage, cam_idx):
-    device = coverage.get_device()
+    device = coverage.device
 
     coverage_matrix = torch.sum(coverage[cam_idx], dim=0)
 
@@ -726,7 +726,7 @@ def get_all_harmonics_under_degree(degree, n_elev, n_azim, device):
 
     h_azim = torch.Tensor([2 * np.pi * j / n_azim for i in range(n_elev) for j in range(n_azim)]).to(device)
 
-    z = torch.zeros([i for i in h_polar.shape] + [0], device=h_polar.get_device())
+    z = torch.zeros([i for i in h_polar.shape] + [0], device=h_polar.device)
 
     clear_spherical_harmonics_cache()
     for l in range(degree):
@@ -807,7 +807,7 @@ def compute_view_state(pts, X_view, n_elev, n_azim):
     :return: A Tensor with shape (n_cloud, seq_len, n_elev*n_azim).
     """
     # Initializing variables
-    device = pts.get_device()
+    device = pts.device
     n_view = len(X_view)
     n_clouds, seq_len, _ = pts.shape
     n_candidates = n_elev * n_azim
@@ -870,7 +870,7 @@ def move_view_state_to_view_space(view_state, fov_camera, n_elev, n_azim):
     :param n_azim: (int)
     :return: Rotated view state tensor with shape (n_cloud, seq_len, n_elev * n_azim)
     """
-    device = view_state.get_device()
+    device = view_state.device
     n_clouds = view_state.shape[0]
     seq_len = view_state.shape[1]
 
@@ -977,7 +977,7 @@ def compute_occupancy_probability(scone_occ, pc, X, view_harmonics, mask=None,
     n_sample, x_dim = X.shape[1], X.shape[2]
     n_harmonics = view_harmonics.shape[2]
 
-    preds = torch.zeros(n_clouds, 0, 1).to(X.get_device())
+    preds = torch.zeros(n_clouds, 0, 1).to(X.device)
 
     p = max_points_per_pass // n_clouds
     q = n_sample // p
@@ -1042,7 +1042,7 @@ def sample_proxy_points(X_world, preds, view_harmonics, n_sample, min_occ, use_o
     res_preds = preds[mask]
     res_harmonics = view_harmonics[mask]
 
-    device = res_X.get_device()
+    device = res_X.device
     n_points = res_X.shape[0]
 
     if use_occ_to_sample:

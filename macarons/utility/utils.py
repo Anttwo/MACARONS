@@ -464,7 +464,7 @@ def image_grid(
 def custom_zip(coords_per_pixel, image_size=512, z_max=10.):
     pts = []
     img_coords = []
-    device = coords_per_pixel.get_device()
+    device = coords_per_pixel.device
     xpix = torch.Tensor([[i for j in range(image_size)] for i in range(image_size)]).to(device).long()
     ypix = torch.Tensor([[j for j in range(image_size)] for i in range(image_size)]).to(device).long()
 
@@ -483,7 +483,7 @@ def custom_zip(coords_per_pixel, image_size=512, z_max=10.):
 def custom_unzip(zipped_coords_per_pixel, image_size=512, z_max=10.):
     pts = zipped_coords_per_pixel['pts']
     img_coords = zipped_coords_per_pixel['img_coords']
-    device = pts[0].get_device()
+    device = pts[0].device
     coords_per_pixel = z_max * torch.ones(len(pts), image_size, image_size, 3, device=device)
     for i in range(len(pts)):
         coords_per_pixel[i].view(-1, 3)[img_coords[i]] = pts[i]
@@ -631,7 +631,7 @@ def adjust_mesh(vertices, verts_range=1.0):
 
 
 def adjust_mesh_diagonally(vertices, diag_range=1.0):
-    device = vertices.get_device()
+    device = vertices.device
     # if device < 0:
     #     new_vertices = torch.zeros(vertices.shape)
     # else:
@@ -663,10 +663,10 @@ def scale_mesh(mesh_verts, scale, offset):
 
 
 def random_scale_mesh(mesh_verts, min_scale, max_scale, output_max_range, input_range=1):
-    scale = min_scale + (max_scale - min_scale) * torch.rand(1, device=mesh_verts.get_device())
+    scale = min_scale + (max_scale - min_scale) * torch.rand(1, device=mesh_verts.device)
 
     offset_factor = (output_max_range - scale * input_range) * 0.5
-    offset = offset_factor * torch.rand(1, 3, device=mesh_verts.get_device())
+    offset = offset_factor * torch.rand(1, 3, device=mesh_verts.device)
 
     new_verts = scale_mesh(mesh_verts, scale, offset)
 
@@ -1331,7 +1331,7 @@ def compute_mesh_face_area(verts, faces):
 
 def sample_mesh_triangle(verts, faces, n_sample, threshold=1e7):  # 5e8):
     n_faces = faces.shape[0]
-    device = verts.get_device()
+    device = verts.device
 
     n_sample_max = int(threshold / n_faces)
     if n_sample_max == 0:
@@ -1375,7 +1375,7 @@ def sample_mesh_triangle(verts, faces, n_sample, threshold=1e7):  # 5e8):
 
 def sample_mesh_triangle_simple(verts, faces, n_sample):
     n_faces = faces.shape[0]
-    device = verts.get_device()
+    device = verts.device
 
     sample_probs = compute_mesh_face_area(verts, faces)
     sample_probs /= torch.sum(sample_probs)
@@ -1398,7 +1398,7 @@ def sample_mesh_triangle_simple(verts, faces, n_sample):
 
 def sample_points_on_mesh_faces(verts, faces, sample_face_indices,
                                 return_textures=False, mesh=None, texture_face_indices=None):
-    device = verts.get_device()
+    device = verts.device
     n_sample = sample_face_indices.shape[0]
 
     sample_faces = faces[sample_face_indices]

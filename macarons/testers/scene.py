@@ -16,7 +16,7 @@ configs_dir = os.path.join(dir_path, "../../configs/macarons")
 
 
 def create_points_to_look_at(X_cam, V_cam, camera_size):
-    rays = - get_cartesian_coords(r=torch.ones(len(V_cam), 1, device=V_cam.get_device()),
+    rays = - get_cartesian_coords(r=torch.ones(len(V_cam), 1, device=V_cam.device),
                                   elev=-1 * V_cam[:, 0].view(-1, 1),
                                   azim=180. + V_cam[:, 1].view(-1, 1),
                                   in_degrees=True)

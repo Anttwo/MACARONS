@@ -232,7 +232,7 @@ class SconeVis(nn.Module):
         _, theta, phi = get_spherical_coords(rays)
         theta = -theta + np.pi/2.
 
-        z = torch.zeros([i for i in theta.shape] + [0], device=theta.get_device())
+        z = torch.zeros([i for i in theta.shape] + [0], device=theta.device)
         for i in range(self.max_harmonic_rank):
             y = get_spherical_harmonics(l=i, theta=theta, phi=phi)
             z = torch.cat((z, y), dim=-1)
@@ -277,7 +277,7 @@ class SconeVis(nn.Module):
         _, theta, phi = get_spherical_coords(rays)
         theta = -theta + np.pi/2.
 
-        z = torch.zeros([i for i in theta.shape] + [0], device=theta.get_device())
+        z = torch.zeros([i for i in theta.shape] + [0], device=theta.device)
         for i in range(self.max_harmonic_rank):
             y = get_spherical_harmonics(l=i, theta=theta, phi=phi)
             z = torch.cat((z, y), dim=-1)

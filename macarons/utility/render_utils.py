@@ -10,7 +10,7 @@ from pytorch3d.vis.plotly_vis import AxisArgs, plot_batch_individually, plot_sce
 
 def plot_point_cloud(points, features, name="", point_size=2, max_points=20000,
                      width=None, height=None, cmap='rgb'):
-    device = points.get_device()
+    device = points.device
     if device < 0:
         device = 'cpu'
 

@@ -166,7 +166,7 @@ def evaluate_from_harmonic_coordinates(coordinates, theta, phi, degree):
     :param degree: int
     :return: A Tensor with shape theta
     """
-    z = torch.zeros([i for i in theta.shape] + [0], device=theta.get_device())
+    z = torch.zeros([i for i in theta.shape] + [0], device=theta.device)
 
     for l in range(degree):
         y = get_spherical_harmonics(l, theta, phi)
