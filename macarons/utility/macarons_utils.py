@@ -751,8 +751,7 @@ def get_camera_RT(X_cam, V_cam):
                                   azim=180. + V_cam[:, 1].view(-1, 1),
                                   in_degrees=True)
     R_cam, T_cam = look_at_view_transform(eye=X_cam, at=X_cam + rays)
-    if V_cam.device > -1:
-        R_cam, T_cam = R_cam.to(V_cam.device), T_cam.to(V_cam.device)
+    R_cam, T_cam = R_cam.to(V_cam.device), T_cam.to(V_cam.device)
 
     return R_cam, T_cam
 
