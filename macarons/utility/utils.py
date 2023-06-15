@@ -1464,9 +1464,7 @@ def project_depth_back_to_3D(depth, cameras):
     :return:
     """
     n_cameras, image_height, image_width = depth.shape[0], depth.shape[1], depth.shape[2]
-    device = depth.get_device()
-    if device < 0:
-        device = 'cpu'
+    device = depth.device
 
     x_tab = torch.Tensor([[i for j in range(image_width)] for i in range(image_height)]).to(device)
     y_tab = torch.Tensor([[j for j in range(image_width)] for i in range(image_height)]).to(device)

@@ -120,7 +120,7 @@ def setup_device(params, ddp_rank=None):
 
     else:
         # Set our device:
-        if torch.cuda.is_available():
+        if (params.numGPU > -1) and torch.cuda.is_available():
             device = torch.device("cuda:" + str(params.numGPU))
             torch.cuda.set_device(device)
         else:
