@@ -58,7 +58,7 @@ def create_blender_curves(params, X_cam_history, V_cam_history, cam_size=10, jum
     return camera_X.tolist(), camera_look.tolist()
 
 
-def setup_test(params, model_path, device):
+def setup_test(params, model_path, device, verbose=True):
     # Create dataloader
     _, _, test_dataloader = get_dataloader(train_scenes=params.train_scenes,
                                            val_scenes=params.val_scenes,
@@ -108,7 +108,7 @@ def setup_test(params, model_path, device):
         scene_memory_path = os.path.join(scene_path, params.memory_dir_name)
         scene_memory_paths.append(scene_memory_path)
     memory = Memory(scene_memory_paths=scene_memory_paths, n_trajectories=params.n_memory_trajectories,
-                    current_epoch=0)
+                    current_epoch=0, verbose=verbose)
 
     return test_dataloader, macarons, memory
 

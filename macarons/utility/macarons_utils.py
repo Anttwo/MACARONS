@@ -3089,7 +3089,7 @@ class Scene:
 
 
 class Memory:
-    def __init__(self, scene_memory_paths, n_trajectories, current_epoch):
+    def __init__(self, scene_memory_paths, n_trajectories, current_epoch, verbose=True):
 
         self.scene_memory_paths = scene_memory_paths
         self.n_trajectories = n_trajectories
@@ -3100,14 +3100,16 @@ class Memory:
             try:
                 os.mkdir(scene_memory_path)
             except OSError as error:
-                print(scene_memory_path, "already exists. The model will write new frames over old frames.")
+                if verbose:
+                    print(scene_memory_path, "already exists. The model will write new frames over old frames.")
 
             # Creating training subfolder
             training_path = os.path.join(scene_memory_path, 'training')
             try:
                 os.mkdir(training_path)
             except OSError as error:
-                print(training_path, "already exists. The model will write new frames over old frames.")
+                if verbose:
+                    print(training_path, "already exists. The model will write new frames over old frames.")
 
             # Creating training trajectories subsubfolder
             for i_traj in range(n_trajectories):
@@ -3115,41 +3117,47 @@ class Memory:
                 try:
                     os.mkdir(traj_i_path)
                 except OSError as error:
-                    print(traj_i_path, "already exists. The model will write new frames over old frames.")
+                    if verbose:
+                        print(traj_i_path, "already exists. The model will write new frames over old frames.")
 
                 # Frames subsubsubfolder
                 traj_i_frames_path = os.path.join(traj_i_path, 'frames')
                 try:
                     os.mkdir(traj_i_frames_path)
                 except OSError as error:
-                    print(traj_i_frames_path, "already exists. The model will write new frames over old frames.")
+                    if verbose:
+                        print(traj_i_frames_path, "already exists. The model will write new frames over old frames.")
 
                 # Occupancy field subsubfolder
                 traj_i_occupancy_path = os.path.join(traj_i_path, 'occupancy')
                 try:
                     os.mkdir(traj_i_occupancy_path)
                 except OSError as error:
-                    print(traj_i_occupancy_path, "already exists. The model will write new files over old files.")
+                    if verbose:
+                        print(traj_i_occupancy_path, "already exists. The model will write new files over old files.")
 
                 # Surface subsubsubfolder
                 traj_i_surface_path = os.path.join(traj_i_path, 'surface')
                 try:
                     os.mkdir(traj_i_surface_path)
                 except OSError as error:
-                    print(traj_i_surface_path, "already exists. The model will write new files over old files.")
+                    if verbose:
+                        print(traj_i_surface_path, "already exists. The model will write new files over old files.")
 
                 # Depths subsubsubfolder
                 traj_i_depths_path = os.path.join(traj_i_path, 'depths')
                 try:
                     os.mkdir(traj_i_depths_path)
                 except OSError as error:
-                    print(traj_i_depths_path, "already exists. The model will write new frames over old frames.")
+                    if verbose:
+                        print(traj_i_depths_path, "already exists. The model will write new frames over old frames.")
 
             training_poses_path = os.path.join(training_path, 'poses')
             try:
                 os.mkdir(training_poses_path)
             except OSError as error:
-                print(error)
+                if verbose:
+                    print(error)
 
     def get_memory_size(self):
         """
