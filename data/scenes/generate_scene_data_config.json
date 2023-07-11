@@ -26,5 +26,7 @@
   "image_width": 456,
   "ambient_light_intensity": 0.85,
   "gathering_factor": 0.05,
-  "sensor_range": 70.0
+  "sensor_range": 70.0,
+  "compute_settings": true,
+  "compute_occupied_poses": true
 }

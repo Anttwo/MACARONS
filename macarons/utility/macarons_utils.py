@@ -1813,9 +1813,9 @@ class SceneSettings:
     def __init__(self, settings_dict, device, scene_scale_factor=1.):
         scene_settings = settings_dict['scene']
 
+        self.grid_l = scene_settings['grid_l']
         self.grid_w = scene_settings['grid_w']
         self.grid_h = scene_settings['grid_h']
-        self.grid_l = scene_settings['grid_l']
 
         self.cell_capacity = scene_settings['cell_capacity']
         self.cell_resolution = scene_settings['cell_resolution']
@@ -1831,9 +1831,9 @@ class CameraSettings:
         self.x_min = scene_scale_factor * torch.Tensor(camera_settings['x_min']).long().to(device)
         self.x_max = scene_scale_factor * torch.Tensor(camera_settings['x_max']).long().to(device)
 
+        self.pose_l = camera_settings['pose_l']
         self.pose_w = camera_settings['pose_w']
         self.pose_h = camera_settings['pose_h']
-        self.pose_l = camera_settings['pose_l']
 
         self.pose_n_elev = camera_settings['pose_n_theta']
         self.pose_n_azim = camera_settings['pose_n_azim']

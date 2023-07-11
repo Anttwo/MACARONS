@@ -71,6 +71,8 @@ This repository contains:
 <details>
 <summary><b>Major code updates</b></summary>
 
+- 07/23: Updated a script to automatically generate settings file for custom scenes
+- 07/23: Added a tutorial notebook to reproduce qualitative results with better quality
 - 05/23: first code release
 
 </details>
@@ -211,7 +213,9 @@ Please note that the `.obj` and `.mtl` files should have the same name apart fro
 
 You will notice that, for each scene, the corresponding subdirectory in `./data/scenes/` also contains 
 a file named `settings.json`. <br>
-You will have to write such files if you want to apply MACARONS on your own custom 3D scenes.<br>
+If you want to apply MACARONS on your own custom 3D scenes,
+you can either run a script to automatically generate this file (as described below), 
+or write it by yourself.<br>
 These files contain input hyperparameters for the 3D scenes to explore.
 In particular, to write your own `settings.json` you have to decide on:
 - A **bounding box** delimiting the exploration area. For better results, you should scale the 3D mesh 
@@ -231,9 +235,9 @@ Finally, you will also notice additional files named `occupied_pose.pt`.<br>
 We use a really simple approach to approximately identify occupied camera poses, and store the results in this file.
 This is useful to ensure that we do select an empty camera pose when sampling a random camera pose at the start of 
 a new trajectory.<br>
-After writing your `settings.json` file, just add the name of your custom scene directories to the config file
+After writing (or not) your `settings.json` file, just add the name of your custom scene directories to the config file
 `./data/scenes/generate_scene_data_config.json`.<br>
-Then, you can generate `occupied_pose.pt` by running the following command.
+Then, you can generate automatically `occupied_pose.pt` (as well as `settings.json`, if no settings file is detected in the directory) by running the following command.
 
 ```
 python generate_scene_data.py
