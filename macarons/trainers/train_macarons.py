@@ -786,7 +786,8 @@ def recompute_mapping(params, macarons,
                       save_depths=False,
                       save_depth_every_n_frame=1,  # Not used if save_depth is False
                       depths_memory_path=None,  # Not used if save_depth is False,
-                      compute_coarse_mapping=False
+                      compute_coarse_mapping=False,
+                      return_colors=False
                       ):
     """
     Recomputes the whole mapping of the scene: the depth maps, the backprojected surface partial point cloud, as well as
@@ -816,6 +817,10 @@ def recompute_mapping(params, macarons,
         proxy_scene.initialize_proxy_points()
 
         full_pc = torch.zeros(0, 3, device=device)
+        if return_colors:
+            full_pc_colors = torch.zeros(0, 3, device=device)
+        else:
+            full_pc_colors = None
 
         depth_counter = 0
 
@@ -870,11 +875,19 @@ def recompute_mapping(params, macarons,
                 fov_camera = camera.get_fov_camera_from_RT(R_cam=R_cam,
                                                            T_cam=T_cam)
                 # TO CHANGE: filter points based on SSIM value!
-                part_pc = camera.compute_partial_point_cloud(depth=depth[i:i + 1],
-                                                             mask=(mask * error_mask)[i:i + 1],
-                                                             fov_cameras=fov_camera,
-                                                             gathering_factor=params.gathering_factor,
-                                                             fov_range=params.sensor_range)
+                if return_colors:
+                    part_pc, part_pc_colors = camera.compute_partial_point_cloud(depth=depth[i:i + 1],
+                                                                                images=batch_dict["images"][i:i + 1],
+                                                                                mask=(mask * error_mask)[i:i + 1],
+                                                                                fov_cameras=fov_camera,
+                                                                                gathering_factor=params.gathering_factor,
+                                                                                fov_range=params.sensor_range)
+                else:
+                    part_pc = camera.compute_partial_point_cloud(depth=depth[i:i + 1],
+                                                                 mask=(mask * error_mask)[i:i + 1],
+                                                                 fov_cameras=fov_camera,
+                                                                 gathering_factor=params.gathering_factor,
+                                                                 fov_range=params.sensor_range)
 
                 # Fill surface scene
                 # part_pc_features = torch.ones(len(part_pc), 1, device=device) # To remove?
@@ -882,6 +895,8 @@ def recompute_mapping(params, macarons,
 
                 # Add partial pc to full pc
                 full_pc = torch.vstack((full_pc, part_pc))
+                if return_colors:
+                    full_pc_colors = torch.vstack((full_pc_colors, part_pc_colors))
 
             # Get Proxy Points in FoV
             fov_proxy_points, fov_proxy_mask = camera.get_points_in_fov(proxy_scene.proxy_points, return_mask=True,
@@ -953,7 +968,8 @@ def recompute_mapping(params, macarons,
                            random_sampling_max_size=params.n_gt_surface_points,
                            min_n_points_per_cell_fill=3,
                            progressive_fill=params.progressive_fill,
-                           max_n_points_per_fill=params.max_points_per_progressive_fill)
+                           max_n_points_per_fill=params.max_points_per_progressive_fill,
+                           full_pc_colors=full_pc_colors)
 
         # Finally, we compute the coarse occupancy field if needed
         if compute_coarse_mapping:
@@ -978,6 +994,8 @@ def recompute_mapping(params, macarons,
 
     if compute_coarse_mapping:
         return full_pc, coarse_mapping_dict
+    elif return_colors:
+        return full_pc, full_pc_colors
     else:
         return full_pc
 
