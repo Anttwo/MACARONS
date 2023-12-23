@@ -50,19 +50,22 @@ This repository contains:
 
 ```
 @inproceedings{guedon2023macarons,
- title={{MACARONS: Mapping And Coverage Anticipation with RGB ONline Self-supervision}},
- author={Guédon, Antoine and Monnier, Tom and Monasse, Pascal and Lepetit, Vincent},
- booktitle={{CVPR}},
- year={2023},
+  title={MACARONS: Mapping And Coverage Anticipation with RGB Online Self-Supervision},
+  author={Gu{\'e}don, Antoine and Monnier, Tom and Monasse, Pascal and Lepetit, Vincent},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  pages={940--951},
+  year={2023}
 }
 ```
 
 ```
-@inproceedings{guedon2022scone,
-  title={{SCONE: Surface Coverage Optimization in Unknown Environments by Volumetric Integration}},
-  author={Gu\'edon, Antoine and Monasse, Pascal and Lepetit, Vincent},
-  booktitle={{Advances in Neural Information Processing Systems}},
-  year={2022},
+@article{guedon2022scone,
+  title={SCONE: Surface Coverage Optimization in Unknown Environments by Volumetric Integration},
+  author={Gu{\'e}don, Antoine and Monasse, Pascal and Lepetit, Vincent},
+  journal={Advances in Neural Information Processing Systems},
+  volume={35},
+  pages={20731--20743},
+  year={2022}
 }
 ```
 
